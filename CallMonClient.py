@@ -21,8 +21,8 @@ from PopupControl       import PopupControl
 from CallMonitorMessage import CallMonitorMessage
 
 # auf True, wenn das Fenster nicht in der Taskbar erscheinen soll. Sonst auf False
-#FRAME_NO_TASKBAR=True
-FRAME_NO_TASKBAR=False
+FRAME_NO_TASKBAR=True
+#FRAME_NO_TASKBAR=False
 
 # ###########################################################
 # 16.11.2014  1.0   erste Version
@@ -39,7 +39,9 @@ FRAME_NO_TASKBAR=False
 # 29.01.2014  1.1.2 Suchfunktion nach Nummer und Name eingebaut
 # 25.02.2015  1.1.3 get_OWN_AREA_CODE() eingebaut und Verarbeitung der eigenen Vorwahl für
 #                   Aliasse zugefügt
-#
+# 30.08.2015  1.2   frühere Initialisierung von self.OWN_AREA_CODE und Spalten-Abschaltung zwecks
+#                   Kompatibilität zu wxWidgets3 insofern erweitert, dass in Spalten mit Breite=0
+#                   der Inhalt ausgeblendet wird
 
 VERSION="1.2"
 
@@ -109,6 +111,7 @@ class CallMonClient(wx.Panel, listmix.ColumnSorterMixin):
     self.list_ctrl.SetFocus()
 
     self.errMsg=u"Der CallMonServer auf %s:%d "%(self.server_ip, self.server_socket)
+    self.OWN_AREA_CODE=""
 
     self.connectToCallMonitorServerLost=False
     if self.server_ip=="":
@@ -525,10 +528,17 @@ class CallMonClient(wx.Panel, listmix.ColumnSorterMixin):
 
   # ###########################################################
   # Fügt "cols" mit dem Index "idx" self.list_ctrl hinzu.
+  # Bei Spalten mit Breite==0 wird der Inhalt ausgebendet.
   def insertRowInListCtrl(self, idx, cols):
-    self.list_ctrl.InsertStringItem(idx, cols[0])
+    if self.list_ctrl.GetColumnWidth(0)==0:
+      self.list_ctrl.InsertStringItem(idx, "")
+    else:
+      self.list_ctrl.InsertStringItem(idx, cols[0])
     for c in range(1, len(cols)):
-      self.list_ctrl.SetStringItem(idx, c, cols[c])
+      if self.list_ctrl.GetColumnWidth(c)==0:
+        self.list_ctrl.SetStringItem(idx, c, "")
+      else:
+        self.list_ctrl.SetStringItem(idx, c, cols[c])
     self.list_ctrl.SetItemData(idx, idx)
 
   # ###########################################################
@@ -665,6 +675,7 @@ class CallMonClient(wx.Panel, listmix.ColumnSorterMixin):
       self.list_ctrl.SetColumnWidth(col, self.colLenList[col])
     else:
       self.list_ctrl.SetColumnWidth(col, 0)
+    self.fillListCtrl()
 
   # ###########################################################
   # Setup-Dialog darstellen.
